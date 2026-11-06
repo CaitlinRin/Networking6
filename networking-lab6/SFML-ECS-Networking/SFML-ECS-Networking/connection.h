@@ -38,9 +38,69 @@ struct Connection
 
 		if (message_history.size() > 1) { // Make sure we have at least 2 messages for Linear interpolation.
 			// Calculate new position by interpolating between last two known positons.
-			return (message_history[1].position + (message_history[0].position - message_history[1].position) * inter_t);
+			//Imprecise method, monotonic
+			//return (message_history[1].position + inter_t * (message_history[0].position - message_history[1].position));
+			//Precise method, this feels smoother
+			return ((1 - inter_t) * message_history[1].position + inter_t * message_history[0].position);
+			//Original
+			//return (message_history[1].position + (message_history[0].position - message_history[1].position) * inter_t);
 		}
 		else
 			return message_history[0].position; // Just return the last known position.
+	}
+
+	sf::Vector2f Predict(float dt, PredictionMethod method, float gameTime)
+	{
+		float predictionTime;
+		sf::Vector2f velocity;
+		sf::Vector2f velocity2;
+
+		sf::Vector2f acceleration;
+
+
+		//Choose which method to use based on enum
+		switch (method)
+		{
+		case PredictionMethod::None:
+			//Return last known position
+			return message_history[0].position;
+			break;
+
+		case PredictionMethod::Linear:
+			if (message_history.size() > 1)
+			{
+				//Use last two positions to calc velocity and acceleration to guess player pos at curr time
+				//Calculate prediction time, might have to pass in actual clock time?
+				predictionTime = gameTime - message_history[0].time;
+				//Velocity
+				velocity = (message_history[0].position - message_history[1].position) / (message_history[0].time - message_history[1].time);
+				//Predicted position
+				return (message_history[0].position + (velocity * predictionTime));
+			}
+			else
+				return message_history[0].position;
+			break;
+
+		case PredictionMethod::Quadratic:
+			if (message_history.size() > 2)
+			{
+				//Calc prediction time
+				predictionTime = gameTime - message_history[0].time;
+
+				//Calculate velocities
+				velocity = (message_history[1].position - message_history[2].position) / (message_history[0].time - message_history[1].time);
+				velocity2 = (message_history[0].position - message_history[1].position) / (message_history[0].time - message_history[1].time);
+
+				//Calc acceleration
+				acceleration = (velocity2 - velocity) / (message_history[0].time - message_history[1].time);
+
+				//Predict position
+				return (message_history[0].position + velocity2 * predictionTime + 0.5f * acceleration * predictionTime * predictionTime);
+			}
+			else
+				return message_history[0].position;
+			break;
+
+		}
 	}
 };
