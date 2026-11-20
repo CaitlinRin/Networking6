@@ -100,3 +100,9 @@ TankMessage Game::GetNetworkUpdate()
 	// For time use -1.f as a way of checking for errors later. The time can never be negative.
 	return {-1.f, 0, tanks.at(0)->position};
 }
+
+void Game::MeasureLatency()
+{
+	//On successful connection, measure latency to server
+	//record time (t1)
+}

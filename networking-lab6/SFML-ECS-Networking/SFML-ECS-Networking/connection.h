@@ -94,8 +94,29 @@ struct Connection
 				//Calc acceleration
 				acceleration = (velocity2 - velocity) / (message_history[0].time - message_history[1].time);
 
+				//Predicted Pos
+				sf::Vector2f predictedPos = (message_history[0].position + velocity2 * predictionTime + 0.5f * acceleration * predictionTime * predictionTime);
+				return predictedPos;
+				//Interpolation
+				float step = 0.f;
+
+				if (message_history.size() > 1) // Make sure we have at least 2 messages for Linear interpolation.
+					step = 1.f / ((message_history[0].time - message_history[1].time) / dt);
+				else
+					step = 0.f;
+
+				// Add step to inter_t
+				inter_t += step;
+
+				// Clamp inter_t to max of 1.f
+				if (inter_t > 1.f)
+					inter_t = 1.f;
+
+				//Interpolated position
+				return ((1 - inter_t) * predictedPos + inter_t * message_history[0].position);
+
 				//Predict position
-				return (message_history[0].position + velocity2 * predictionTime + 0.5f * acceleration * predictionTime * predictionTime);
+				//return (message_history[0].position + velocity2 * predictionTime + 0.5f * acceleration * predictionTime * predictionTime);
 			}
 			else
 				return message_history[0].position;

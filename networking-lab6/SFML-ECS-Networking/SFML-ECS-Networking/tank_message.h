@@ -9,3 +9,9 @@ struct TankMessage {
 	// Changed position to a vector2 for ease of interpolation calculations
 	sf::Vector2f position = {0.f, 0.f};
 };
+
+struct RecordTimeMessage
+{
+	//Send time?
+	float time = 0;//t1 ig
+};

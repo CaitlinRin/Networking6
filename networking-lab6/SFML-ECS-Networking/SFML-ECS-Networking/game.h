@@ -15,6 +15,10 @@ public:
 	void AddTank(std::string body_tex, std::string barrel_tex, sf::Vector2f position);
 	TankMessage GetNetworkUpdate();
 
+	//Time sync stuff??
+	void MeasureLatency();
+	void TimeSync();
+
 private:
 	// We can now have more thank 1 tank in the game.
 	std::vector<std::unique_ptr<Tank>> tanks;

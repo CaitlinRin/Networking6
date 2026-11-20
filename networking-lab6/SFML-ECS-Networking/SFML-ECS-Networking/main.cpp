@@ -23,6 +23,7 @@ int main() {
 	unsigned short player_port = sf::Socket::AnyPort;
 	const int MAX_HISTORY = 3;
 
+
 	Utils::printMsg("Game startup...");
 
 	std::string title_type = "";
@@ -91,6 +92,7 @@ int main() {
 	float reconnect_delay = 1.f;
 	float send_timer = 1.f;
 	bool is_connected = false;
+	float ping_timer = 5.f;
 
 	// Selector for handling multiple connections (Observer only).
 	sf::SocketSelector selector;
@@ -102,6 +104,7 @@ int main() {
 		game_time += dt;
 		text.setString("Game Time: " + std::to_string(game_time));
 		send_timer += dt;
+		ping_timer += dt;
 		// Handle window events (e.g. key press).
 		while (const std::optional event = window.pollEvent()) {
 			if (event->is<sf::Event::Closed>()) {
@@ -122,6 +125,7 @@ int main() {
 		}
 		// Packet to hold our updates.
 		sf::Packet packet;
+		sf::Packet pingPacket;
 
 		if (is_observer) { // OBSERVER
 			// Socket for communication with player
@@ -195,6 +199,8 @@ int main() {
 						if (player_connections[i].message_history.size() > MAX_HISTORY) {
 							player_connections[i].message_history.pop_back(); // remove the oldest message at the back
 						}
+
+		
 #ifdef DEBUG
 						//For DEBUG ONLY, pring current message history. Remove this when no longer needed!
 						std::string history_msg = "Current queue: \n";
@@ -223,6 +229,20 @@ int main() {
 						// FIXME: But we should also remove the inactive connection from the vector and remove the tank from the game.
 						player_connections[i].state = Disconnected;
 					}
+					//Measure latency recieve packet
+					sf::Socket::Status pingStatus = player_connections[i].socket->receive(pingPacket);
+					if (status == sf::Socket::Status::Done)
+					{
+						//Measure latency??
+						RecordTimeMessage pingMessage;
+						//This is server recieving from client
+						pingMessage.time = game_time;
+						pingPacket >> pingMessage.time;
+						//send a pcket back?
+
+
+
+					}
 				}
 				// NOTE: Moved player update here, as we want to update every time, not just when we recieve messages.
 				if (!player_connections[i].message_history.empty()) {
@@ -230,8 +250,8 @@ int main() {
 					Utils::printMsg("dt = " + std::to_string(dt) + ", Inter t = " + std::to_string(player_connections[i].inter_t), MessageType::info);
 #endif // DEBUG
 					// Get actual position based on interpolation method.
-					//sf::Vector2f interpolated_pos = player_connections[i].Interpolate(dt);
-					sf::Vector2f interpolated_pos = player_connections[i].Predict(dt, PredictionMethod::Linear, game_time);
+					sf::Vector2f interpolated_pos = player_connections[i].Interpolate(dt);
+					//sf::Vector2f interpolated_pos = player_connections[i].Predict(dt, PredictionMethod::Quadratic, game_time);
 
 					// Construct message with actual positon.
 					TankMessage interpolated_msg = {
@@ -278,6 +298,7 @@ int main() {
 				if (send_timer >= send_rate) {
 					sf::Socket::Status status = player_socket->send(packet);
 					// FIXME: Send can fail, check for errors and adjust logic accordingly.
+					//client sending
 					if (status == sf::Socket::Status::Done) {
 #ifdef DEBUG
 						Utils::printMsg("Sent message to: "
@@ -292,6 +313,12 @@ int main() {
 					// Reset timer after sending the message
 					send_timer = 0;
 				}
+
+				//Measure latency
+				RecordTimeMessage pingMessage;
+				//Record client time? t1
+				pingMessage.time = game_time;
+				pingPacket >> pingMessage.time;
 			}
 		}
 #pragma endregion
